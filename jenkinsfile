@@ -1,0 +1,16 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven'       // Nom configuré dans Jenkins (Global Tool Configuration)
+        jdk 'jdk17'          // Idem pour JDK
+    }
+
+    stages {
+
+        stage('Clone repository') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/rounaaa/student.git'
+            }
+        }}
