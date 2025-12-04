@@ -2,22 +2,61 @@ pipeline {
     agent any
 
     tools {
-        maven 'maven'       // Nom configuré dans Jenkins (Global Tool Configuration)
-        jdk 'jdk17'          // Idem pour JDK
+        maven 'maven'
+        jdk 'jdk17'
+    }
+
+    environment {
+        DOCKERHUB_CREDENTIALS = 'dockerhub'
+        IMAGE_NAME = 'student-management-raouen'
+        DOCKERHUB_USER = 'raouenmaknine'
+        IMAGE_TAG = '1.0'
     }
 
     stages {
-
         stage('Clone repository') {
             steps {
                 git branch: 'master',
                     url: 'https://github.com/rounaaa/student.git'
             }
         }
-         stage('Build') {
+        
+        stage('Build') {
             steps {
                 sh 'mvn -B clean package'
             }
         }
-}
+        
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+        
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKERHUB_CREDENTIALS}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                        docker logout
+                    '''
+                }
+            }
+        }
+        
+        stage('Run Container') {
+            steps {
+                sh '''
+                    docker stop student-app 2>/dev/null || true
+                    docker rm student-app 2>/dev/null || true
+                    docker run -d --name student-app -p 8081:8080 ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+    }
 }
