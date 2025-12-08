@@ -72,5 +72,15 @@ pipeline {
             }
         }
     }
-
+ post {
+        success {mail bcc: '', body: '''"""The build has Succed!
+''', cc: '', from: '', replyTo: '', subject: 'SUCCESS', to: 'makninraouen@gmail.com'
+          
+        }
+        failure {
+                    mail bcc: '', body: '''"""The build has FAILED!
+                    Fix required!
+''', cc: '', from: '', replyTo: '', subject: 'FAILURE', to: 'makninraouen@gmail.com'
+        }
+    }
 }
