@@ -71,6 +71,32 @@ pipeline {
                 '''
             }
         }
+stage('Deploy to Kubernetes') {
+    steps {
+        script {
+            // 1. Mettre à jour l'image dans le fichier de déploiement
+            sh """
+                sed -i 's|image: ${env.DOCKERHUB_USER}/${env.IMAGE_NAME}:.*|image: ${env.DOCKERHUB_USER}/${env.IMAGE_NAME}:${env.IMAGE_TAG}|g' k8s/spring-deployment.yaml
+            """
+            
+            // 2. Appliquer les configurations Kubernetes
+            sh """
+                kubectl apply -f k8s/ -n devops
+            """
+            
+            // 3. Vérifier le déploiement
+            sh """
+                kubectl rollout status deployment/spring-app -n devops --timeout=120s
+            """
+            
+            // 4. Obtenir et afficher l'URL
+            sh """
+                echo "🌐 Application déployée avec succès !"
+                minikube service spring-service -n devops --url
+            """
+        }
+    }
+}
     }
 
 }
