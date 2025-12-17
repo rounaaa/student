@@ -32,20 +32,7 @@ pipeline {
                 sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
-        stage('SonarQube') {
-            steps {
-                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('sonarqube') {
-                        sh """
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=student \
-                            -Dsonar.host.url=$SONAR_HOST_URL \
-                            -Dsonar.login=$SONAR_TOKEN
-                        """
-                    }
-                }
-            }
-        }
+        
         stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
@@ -61,6 +48,7 @@ pipeline {
                 }
             }
         }
+
         
 stage('Run Container') {
             steps {
@@ -69,6 +57,20 @@ stage('Run Container') {
                     docker rm student-app 2>/dev/null || true
                     docker run -d --name student-app -p 8081:8080 ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG}
                 '''
+            }
+        }
+stage('SonarQube') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=student \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.login=$SONAR_TOKEN
+                        """
+                    }
+                }
             }
         }
     }
