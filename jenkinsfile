@@ -59,20 +59,32 @@ stage('Run Container') {
                 '''
             }
         }
-stage('SonarQube') {
-            steps {
-                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('sonarqube') {
-                        sh """
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=student \
-                            -Dsonar.host.url=$SONAR_HOST_URL \
-                            -Dsonar.login=$SONAR_TOKEN
-                        """
-                    }
-                }
-            }
+//stage('SonarQube') {
+           // steps {
+             //   withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) {
+               //     withSonarQubeEnv('sonarqube') {
+                 //       sh """
+                   //         mvn sonar:sonar \
+                     //       -Dsonar.projectKey=student \
+                       //     -Dsonar.host.url=$SONAR_HOST_URL \
+  //                          -Dsonar.login=$SONAR_TOKEN
+//                        """
+    //                }
+      //          }
+        //    }
+        //}
+stage('Deploy to Kubernetes') {
+    steps {
+        script {
+            sh '''
+                echo "🚀 Déploiement Kubernetes..."
+                kubectl apply -f mysql-deployment.yaml -n devops
+                kubectl apply -f spring-deployment.yaml -n devops
+                echo "✅ Déploiement terminé"
+            '''
         }
+    }
+}
     }
 
 }
