@@ -62,7 +62,7 @@ stage('Run Container') {
 stage('SonarQube') {
             steps {
                 withCredentials([string(credentialsId: 'SONARQUBE', variable: 'SONAR_TOKEN')]) {
-                    withSonarQubeEnv('sonarqube') {
+                    withSonarQubeEnv('SONARQUBE') {
                         sh """
                             mvn sonar:sonar \
                             -Dsonar.projectKey=student \
