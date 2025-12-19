@@ -63,58 +63,8 @@ stage('Deploy to Kubernetes') {
     steps {
         script {
             sh '''
-                set +e  # Ne pas arrêter sur les erreurs
-                
-                echo "🔍 Diagnostic Kubernetes..."
-                
-                # Étape 1: Vérifier les prérequis
-                if [ ! -f "spring-deployment.yaml" ]; then
-                    echo "❌ Fichier spring-deployment.yaml non trouvé"
-                    echo "📁 Contenu du répertoire :"
-                    ls -la
-                    exit 1
-                fi
-                
-                # Étape 2: Vérifier kubectl
-                KUBECTL_PATH=$(which kubectl)
-                if [ -z "$KUBECTL_PATH" ]; then
-                    echo "⚠️  kubectl non trouvé, tentative d'installation..."
-                    # Ajoutez ici l'installation adaptée à votre environnement
-                    echo "❌ Veuillez installer kubectl sur le node Jenkins"
-                    exit 1
-                else
-                    echo "✅ kubectl trouvé: $KUBECTL_PATH"
-                fi
-                
-                # Étape 3: Vérifier la connexion
-                kubectl cluster-info 2>/dev/null
-                if [ $? -ne 0 ]; then
-                    echo "⚠️  Impossible de se connecter au cluster Kubernetes"
-                    echo "ℹ️  Vérifiez la configuration kubeconfig"
-                    kubectl config view
-                else
-                    echo "✅ Connecté au cluster Kubernetes"
-                fi
-                
-                # Étape 4: Déployer
-                echo "🚀 Déploiement en cours..."
-                
-                # Créer le namespace si nécessaire
-                kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
-                
-                # Appliquer avec plusieurs tentatives
-                for i in {1..3}; do
-                    echo "Tentative $i/3..."
-                    kubectl apply -f spring-deployment.yaml -n devops --validate=false && {
-                        echo "✅ Déploiement réussi"
-                        break
-                    }
-                    sleep 5
-                done
-                
-                # Vérifier le résultat
-                echo "📊 État final :"
-                kubectl get pods -n devops 2>/dev/null || echo "Impossible de récupérer les pods"
+                kubectl delete -f spring-deployment.yaml -n devops --ignore-not-found=true
+                kubectl apply -f spring-deployment.yaml -n devops
             '''
         }
     }
