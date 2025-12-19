@@ -9,6 +9,7 @@ data:
   SERVER_SERVLET_CONTEXT_PATH: "/student" 
   SPRING_PROFILES_ACTIVE: "prod"
 
+---  # <-- AJOUTER CE SÉPARATEUR
 
 apiVersion: v1
 kind: Secret
@@ -17,9 +18,10 @@ metadata:
   namespace: devops
 type: Opaque
 data:
-  SPRING_DATASOURCE_USERNAME: cm9vdA==        # "root" en base64
-  SPRING_DATASOURCE_PASSWORD: cm9vdDEyMw==    # "root123" en base64
+  SPRING_DATASOURCE_USERNAME: cm9vdA==
+  SPRING_DATASOURCE_PASSWORD: cm9vdDEyMw==
 
+---  # <-- AJOUTER CE SÉPARATEUR
 
 apiVersion: apps/v1
 kind: Deployment
@@ -47,6 +49,7 @@ spec:
         - secretRef:
             name: spring-secret
 
+---  # <-- AJOUTER CE SÉPARATEUR
 
 apiVersion: v1
 kind: Service
@@ -61,9 +64,3 @@ spec:
     targetPort: 8089
     nodePort: 30089
   type: NodePort
-
-
-
-
-
-
