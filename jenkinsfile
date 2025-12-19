@@ -77,9 +77,26 @@ stage('Deploy to Kubernetes') {
     steps {
         script {
             sh '''
-                # Simple et efficace
+                echo "🚀 Déploiement Kubernetes..."
+                
+                # Supprimer tout d'abord
                 kubectl delete -f spring-deployment.yaml -n devops --ignore-not-found=true
-                kubectl apply -f spring-deployment.yaml -n devops
+                sleep 5
+                
+                # Appliquer chaque ressource séparément en utilisant yq ou awk
+                echo "1. Appliquer ConfigMap..."
+                cat spring-deployment.yaml | yq eval 'select(.kind == "ConfigMap")' - | kubectl apply -n devops -f -
+                
+                echo "2. Appliquer Secret..."
+                cat spring-deployment.yaml | yq eval 'select(.kind == "Secret")' - | kubectl apply -n devops -f -
+                
+                echo "3. Appliquer Deployment..."
+                cat spring-deployment.yaml | yq eval 'select(.kind == "Deployment")' - | kubectl apply -n devops -f -
+                
+                echo "4. Appliquer Service..."
+                cat spring-deployment.yaml | yq eval 'select(.kind == "Service")' - | kubectl apply -n devops -f -
+                
+                echo "✅ Déploiement terminé"
             '''
         }
     }
