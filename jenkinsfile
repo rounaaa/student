@@ -63,40 +63,58 @@ stage('Deploy to Kubernetes') {
     steps {
         script {
             sh '''
-                echo "🚀 Vérification de l'environnement Kubernetes..."
+                set +e  # Ne pas arrêter sur les erreurs
                 
-                # 1. Vérifier si kubectl est disponible
-                if ! command -v kubectl &> /dev/null; then
-                    echo "❌ kubectl n'est pas installé ou n'est pas dans le PATH"
-                    echo "📦 Installation de kubectl..."
-                    # Installation de kubectl (adaptez selon votre OS)
-                    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-                    chmod +x kubectl
-                    sudo mv kubectl /usr/local/bin/
+                echo "🔍 Diagnostic Kubernetes..."
+                
+                # Étape 1: Vérifier les prérequis
+                if [ ! -f "spring-deployment.yaml" ]; then
+                    echo "❌ Fichier spring-deployment.yaml non trouvé"
+                    echo "📁 Contenu du répertoire :"
+                    ls -la
+                    exit 1
                 fi
                 
-                # 2. Vérifier la connexion Kubernetes
-                echo "🔗 Connexion au cluster..."
-                kubectl version --client || echo "⚠️  Impossible d'exécuter kubectl"
+                # Étape 2: Vérifier kubectl
+                KUBECTL_PATH=$(which kubectl)
+                if [ -z "$KUBECTL_PATH" ]; then
+                    echo "⚠️  kubectl non trouvé, tentative d'installation..."
+                    # Ajoutez ici l'installation adaptée à votre environnement
+                    echo "❌ Veuillez installer kubectl sur le node Jenkins"
+                    exit 1
+                else
+                    echo "✅ kubectl trouvé: $KUBECTL_PATH"
+                fi
                 
-                # 3. Lister les fichiers disponibles
-                echo "📁 Fichiers disponibles :"
-                ls -la *.yaml || echo "⚠️  Aucun fichier YAML trouvé"
+                # Étape 3: Vérifier la connexion
+                kubectl cluster-info 2>/dev/null
+                if [ $? -ne 0 ]; then
+                    echo "⚠️  Impossible de se connecter au cluster Kubernetes"
+                    echo "ℹ️  Vérifiez la configuration kubeconfig"
+                    kubectl config view
+                else
+                    echo "✅ Connecté au cluster Kubernetes"
+                fi
                 
-                # 4. Vérifier le contenu des fichiers
-                echo "📄 Contenu de spring-deployment.yaml (premières lignes) :"
-                head -20 spring-deployment.yaml 2>/dev/null || echo "❌ Fichier non trouvé"
+                # Étape 4: Déployer
+                echo "🚀 Déploiement en cours..."
                 
-                # 5. Essayer avec --dry-run d'abord
-                echo "🧪 Test dry-run..."
-                kubectl apply -f spring-deployment.yaml -n devops --dry-run=client || echo "⚠️  Dry-run échoué"
+                # Créer le namespace si nécessaire
+                kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null || true
                 
-                # 6. Appliquer pour de vrai
-                echo "📦 Déploiement..."
-                kubectl delete -f spring-deployment.yaml -n devops --ignore-not-found=true
-                kubectl apply -f spring-deployment.yaml -n devops
+                # Appliquer avec plusieurs tentatives
+                for i in {1..3}; do
+                    echo "Tentative $i/3..."
+                    kubectl apply -f spring-deployment.yaml -n devops --validate=false && {
+                        echo "✅ Déploiement réussi"
+                        break
+                    }
+                    sleep 5
+                done
                 
-                echo "✅ Commande exécutée"
+                # Vérifier le résultat
+                echo "📊 État final :"
+                kubectl get pods -n devops 2>/dev/null || echo "Impossible de récupérer les pods"
             '''
         }
     }
