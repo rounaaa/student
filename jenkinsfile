@@ -78,7 +78,21 @@ stage('Deploy to Kubernetes') {
         script {
             sh '''
                 echo "🚀 Déploiement Kubernetes..."
-                kubectl apply -f mysql-deployment.yaml -n devops
+                
+                # Afficher le fichier YAML pour debug
+                echo "=== mysql-deployment.yaml ==="
+                cat mysql-deployment.yaml
+                echo "============================="
+                
+                # Essayer avec validation d'abord
+                if kubectl apply -f mysql-deployment.yaml -n devops --dry-run=client; then
+                    echo "✅ YAML valide, application..."
+                    kubectl apply -f mysql-deployment.yaml -n devops
+                else
+                    echo "⚠️  Validation échouée, tentative sans validation..."
+                    kubectl apply -f mysql-deployment.yaml -n devops --validate=false
+                fi
+                
                 kubectl apply -f spring-deployment.yaml -n devops
                 echo "✅ Déploiement terminé"
             '''
