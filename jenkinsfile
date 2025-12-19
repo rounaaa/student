@@ -63,8 +63,40 @@ stage('Deploy to Kubernetes') {
     steps {
         script {
             sh '''
+                echo "🚀 Vérification de l'environnement Kubernetes..."
+                
+                # 1. Vérifier si kubectl est disponible
+                if ! command -v kubectl &> /dev/null; then
+                    echo "❌ kubectl n'est pas installé ou n'est pas dans le PATH"
+                    echo "📦 Installation de kubectl..."
+                    # Installation de kubectl (adaptez selon votre OS)
+                    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                    chmod +x kubectl
+                    sudo mv kubectl /usr/local/bin/
+                fi
+                
+                # 2. Vérifier la connexion Kubernetes
+                echo "🔗 Connexion au cluster..."
+                kubectl version --client || echo "⚠️  Impossible d'exécuter kubectl"
+                
+                # 3. Lister les fichiers disponibles
+                echo "📁 Fichiers disponibles :"
+                ls -la *.yaml || echo "⚠️  Aucun fichier YAML trouvé"
+                
+                # 4. Vérifier le contenu des fichiers
+                echo "📄 Contenu de spring-deployment.yaml (premières lignes) :"
+                head -20 spring-deployment.yaml 2>/dev/null || echo "❌ Fichier non trouvé"
+                
+                # 5. Essayer avec --dry-run d'abord
+                echo "🧪 Test dry-run..."
+                kubectl apply -f spring-deployment.yaml -n devops --dry-run=client || echo "⚠️  Dry-run échoué"
+                
+                # 6. Appliquer pour de vrai
+                echo "📦 Déploiement..."
                 kubectl delete -f spring-deployment.yaml -n devops --ignore-not-found=true
                 kubectl apply -f spring-deployment.yaml -n devops
+                
+                echo "✅ Commande exécutée"
             '''
         }
     }
